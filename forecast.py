@@ -9,7 +9,7 @@ from prophet import Prophet
 from sklearn.neural_network import MLPRegressor
 from lightgbm import LGBMRegressor
 from datetime import timedelta
-from tools import read_data_table, write_result_table
+from tools import read_data_table, write_result_table, update_forecast_table
 
 num_epochs = 1  # LSTM 训练轮数
 
@@ -37,6 +37,14 @@ def build_dataset(df_csv, num_points):
     df.ffill(inplace=True)
     
     return df
+
+def MAPE(y_true, y_pred):
+    y_true, y_pred = np.array(y_true), np.array(y_pred)
+    non_zero_indices = y_true != 0
+    y_true = y_true[non_zero_indices]
+    y_pred = y_pred[non_zero_indices]
+    mape = np.mean(np.abs((y_true - y_pred) / y_true))
+    return 1 - mape;
 
 class MyLSTM(nn.Module):
     def __init__(self, predict_size):
@@ -154,8 +162,11 @@ def predict_BP(df, window_size, train_pred_LSTM, train_pred_Prophet, future_pred
     df_future['pred_LSTM'] = future_pred_LSTM
 
     future_pred_BP = model_BP.predict(df_future[['pred_LSTM', 'pred_Prophet']])
+    
+    train_pred_BP = model_BP.predict(df_train[['pred_LSTM', 'pred_Prophet']])
+    mape = MAPE(df_train['y'], train_pred_BP)
 
-    return future_pred_BP
+    return future_pred_BP, mape
 
 def ultra_short_term_load_forecast(order):
     order_id = order.get('order_id')
@@ -218,6 +229,7 @@ def ultra_short_term_load_forecast(order):
             row[f'p{i+1}'] = df_result['pred_Fusion'][i]
         else:
             row[f'p{i+1}'] = None
+    row['accuracy'] = None
     result.append(row)
 
     write_result_table('forecast', result)
@@ -252,7 +264,7 @@ def short_term_load_forecast(order, write_to_db):
 
     train_pred_LSTM, future_pred_LSTM, _, _, _ = predict_LSTM(df, window_size, predict_size)
     train_pred_Prophet, future_pred_Prophet = predict_Prophet(df, window_size, predict_size, freq)
-    future_pred_BP = predict_BP(df, window_size, train_pred_LSTM, train_pred_Prophet, future_pred_LSTM, future_pred_Prophet)
+    future_pred_BP, acc_train = predict_BP(df, window_size, train_pred_LSTM, train_pred_Prophet, future_pred_LSTM, future_pred_Prophet)
 
     df_result = future_pred_Prophet
     df_result.rename(columns={"yhat": "pred_Prophet"}, inplace=True)
@@ -278,9 +290,12 @@ def short_term_load_forecast(order, write_to_db):
             row[f'p{i+1}'] = df_result['pred_BP'][i]
         else:
             row[f'p{i+1}'] = None
+    row['accuracy'] = None
     result.append(row)
 
     write_result_table('forecast', result)
+
+    return df_result['pred_BP'], acc_train
 
 def forecast(order, write_to_db=False):
     order_id = order.get('order_id')
@@ -312,15 +327,20 @@ def forecast(order, write_to_db=False):
                 row[f'p{i+1}'] = None
         result.append(row)
     else:
-        short_term_load_forecast(order, write_to_db)
-
+        future_pred, acc_train = short_term_load_forecast(order, write_to_db)
+        
         if df_forecast is not None:
+            acc_future = MAPE(df_forecast.iloc[-1].iloc[1:], future_pred)
+            update_forecast_table(order_id, acc_future)
+
             for i in range(96):
                 if i < len(df_forecast.iloc[-1]) - 1:
                     row[f'p{i+1}'] = df_forecast.iloc[-1].iloc[i + 1]
                 else:
                     row[f'p{i+1}'] = None
             result.append(row)
-    
+        else:
+            update_forecast_table(order_id, acc_train)
+         
     if result:
         write_result_table('forecast_actuals', result)

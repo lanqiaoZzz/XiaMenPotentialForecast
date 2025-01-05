@@ -353,7 +353,8 @@ CREATE TABLE forecast (
     p93 DECIMAL(10, 2),
     p94 DECIMAL(10, 2),
     p95 DECIMAL(10, 2),
-    p96 DECIMAL(10, 2)                  -- 第96个时间点的预测结果
+    p96 DECIMAL(10, 2),                 -- 第96个时间点的预测结果
+    accuracy DECIMAL(10, 2)             -- 短期预测准确率
 );
 
 -- 2.6 forecast_actuals表: 结果表，存储超短期负荷预测和短期负荷预测所对应的实际负荷

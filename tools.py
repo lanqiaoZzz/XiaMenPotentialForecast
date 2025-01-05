@@ -37,7 +37,6 @@ def read_data_table(user_id, date_start, date_end):
         
         return df[columns_selected], int(df['data_point_flag'][0])
 
-
 def write_result_table(table_name, result):
     """
     向 xiamen_output 数据库中的表写入数据
@@ -64,3 +63,27 @@ def write_result_table(table_name, result):
         print(f"Error inserting data: {e}")
     finally:
         connection.close()  
+
+def update_forecast_table(order_id, accuracy):
+    """
+    更新 xiamen_output 数据库中的 forecast 表
+    
+    """
+    connection = pymysql.connect(**config_result)
+
+    try:
+        with connection.cursor() as cursor:            
+            update_sql = f"""
+                        update forecast
+                        set accuracy = {accuracy}
+                        where order_id = '{order_id}'
+                        """
+
+            cursor.execute(update_sql)
+
+        connection.commit()
+    except Exception as e:
+        connection.rollback()  
+        print(f"Error updating data: {e}")
+    finally:
+        connection.close() 
