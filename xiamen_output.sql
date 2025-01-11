@@ -357,7 +357,7 @@ CREATE TABLE forecast (
     accuracy DECIMAL(10, 2)             -- 短期预测准确率
 );
 
--- 2.6 forecast_actuals表: 结果表，存储超短期负荷预测和短期负荷预测所对应的实际负荷
+-- 2.7 forecast_actuals表: 结果表，存储超短期负荷预测和短期负荷预测所对应的实际负荷
 CREATE TABLE forecast_actuals (
     order_id INT NOT NULL PRIMARY KEY,           
     type INT NOT NULL,                  -- 预测类型：1 – 超短期，2 – 短期
@@ -461,7 +461,7 @@ CREATE TABLE forecast_actuals (
     p96 DECIMAL(10, 2)                  -- 第96个时间点的实际负荷
 );
 
--- 2.7 potential表: 结果表，存储负荷潜力计算与评估的结果
+-- 2.8 potential表: 结果表，存储负荷潜力计算与评估的结果
 CREATE TABLE potenial (
     order_id INT NOT NULL,                         
     baseline_type INT NOT NULL,             -- 基线类型 (1 - mean, 2 - max, 3 - min, 4 - quantile, 5 - typical)

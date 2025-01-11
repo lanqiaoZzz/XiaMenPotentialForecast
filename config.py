@@ -1,3 +1,4 @@
+# 存储电力数据的数据库
 config_data = {
     'host': 'localhost',          # 数据库主机地址
     'user': 'root',               # 数据库用户名      
@@ -7,6 +8,7 @@ config_data = {
     'charset': 'utf8mb4'          # 指定字符集
 }
 
+# 存储程序运行结果的数据库
 config_result = {
     'host': 'localhost',          
     'user': 'root',               
