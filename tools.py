@@ -4,18 +4,63 @@ from decimal import Decimal
 from config import config_data, config_result
 
 
-def read_data_table(user_id, date_start, date_end):
+# def read_data_table(user_id, date_start, date_end):
+#     """
+#     读 xia_men 数据库中存储数据的表
+    
+#     """
+#     connection = pymysql.connect(**config_data)
+
+#     with connection.cursor() as cursor:
+#         if date_start is None:
+#             query = f"select * from dr_cons_curve where cons_id = '{user_id}' and data_date <= '{date_end}';"
+#         else:
+#             query = f"select * from dr_cons_curve where cons_id = '{user_id}' and data_date >= '{date_start}' and data_date <= '{date_end}';"
+        
+#         cursor.execute(query)
+
+#         results = cursor.fetchall()
+
+#         if not results:
+#             return None, None
+
+#         columns = [desc[0] for desc in cursor.description]  # 字段名列表
+
+#         df = pd.DataFrame(results, columns=columns)
+
+#         columns_pi = []
+#         for i in range(1, 97):
+#             columns_pi.append('p' + str(i))
+#         df[columns_pi] = df[columns_pi].astype(float)
+
+#         columns_selected = ['data_date'] + columns_pi
+        
+#         return df[columns_selected], int(df['data_point_flag'][0])
+
+def read_data_table(order_id, date_start, date_end):
     """
     读 xia_men 数据库中存储数据的表
     
     """
+    connection = pymysql.connect(**config_result)
+
+    users = []
+    with connection.cursor() as cursor:
+        query = f"select user_id from order_users where order_id = '{order_id}';"    
+        cursor.execute(query)
+
+        results = cursor.fetchall()
+        for result in results:
+            users.append(result[0])
+    
     connection = pymysql.connect(**config_data)
+    user_ids = "', '".join(users)
 
     with connection.cursor() as cursor:
         if date_start is None:
-            query = f"select * from dr_cons_curve where cons_id = '{user_id}' and data_date <= '{date_end}';"
+            query = f"select * from dr_cons_curve where cons_id in ('{user_ids}') and data_date <= '{date_end}';"
         else:
-            query = f"select * from dr_cons_curve where cons_id = '{user_id}' and data_date >= '{date_start}' and data_date <= '{date_end}';"
+            query = f"select * from dr_cons_curve where cons_id in ('{user_ids}') and data_date >= '{date_start}' and data_date <= '{date_end}';"
         
         cursor.execute(query)
 
@@ -23,7 +68,7 @@ def read_data_table(user_id, date_start, date_end):
 
         if not results:
             return None, None
-
+        
         columns = [desc[0] for desc in cursor.description]  # 字段名列表
 
         df = pd.DataFrame(results, columns=columns)
@@ -34,7 +79,7 @@ def read_data_table(user_id, date_start, date_end):
         df[columns_pi] = df[columns_pi].astype(float)
 
         columns_selected = ['data_date'] + columns_pi
-        
+
         return df[columns_selected], int(df['data_point_flag'][0])
 
 def write_result_table(table_name, result):

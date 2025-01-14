@@ -236,11 +236,11 @@ def ultra_short_term_load_forecast(order):
 
 def short_term_load_forecast(order, write_to_db):
     order_id = order.get('order_id')
-    user_id = order.get('user_id')
+    # user_id = order.get('user_id')
     date_start = order.get('date_start')
     date_end = order.get('date_end')
 
-    df_csv, data_point_flag = read_data_table(user_id, date_start, date_end)
+    df_csv, data_point_flag = read_data_table(order_id, date_start, date_end)
     
     freq = '15min'
     num_points = 96
@@ -300,13 +300,13 @@ def short_term_load_forecast(order, write_to_db):
 def forecast(order, write_to_db=False):
     order_id = order.get('order_id')
     func_type = order.get('func_type')
-    user_id = order.get('user_id')
+    # user_id = order.get('user_id')
     date_start = order.get('date_start')
     date_end = order.get('date_end')
-    df, data_point_flag = read_data_table(user_id, date_start, date_end)
+    df, data_point_flag = read_data_table(order_id, date_start, date_end)
         
     date_forecast = date_end + timedelta(days=1)    # 预测日期
-    df_forecast, _ = read_data_table(user_id, date_forecast, date_forecast)    # 预测日期的实际负荷（可能不存在）
+    df_forecast, _ = read_data_table(order_id, date_forecast, date_forecast)    # 预测日期的实际负荷（可能不存在）
 
     result = []
     row = {

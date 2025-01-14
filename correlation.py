@@ -44,10 +44,10 @@ def calculate_correlation(order):
         None
     """
     order_id = order.get('order_id')
-    user_id = order.get('user_id')
+    # user_id = order.get('user_id')
     date_start = order.get('date_start')
     date_end = order.get('date_end')
-    df, data_point_flag = read_data_table(user_id, date_start, date_end)
+    df, data_point_flag = read_data_table(order_id, date_start, date_end)
 
     num_points = 96
     if data_point_flag == 2:

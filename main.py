@@ -36,7 +36,7 @@ def read_orders_table(order_id):
 
 
 if __name__ == '__main__':
-    order_id = 6
+    order_id = 7
     order = read_orders_table(order_id)
 
     func_type = order.get('func_type')
