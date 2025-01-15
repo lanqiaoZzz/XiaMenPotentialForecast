@@ -252,11 +252,13 @@ def evaluate_cluster(order):
         None
     """
     order_id = order.get('order_id')
-    # user_id = order.get('user_id')
     date_start = order.get('date_start')
     date_end = order.get('date_end')
+    user_id = order.get('user_id')
+    df_resource, _ = read_data_table(user_id, date_start, date_end)
+
+    # df_resource, _ = read_data_table(order_id, date_start, date_end)
     
-    df_resource, _ = read_data_table(order_id, date_start, date_end)
     df_resource, df_data = DataFrameUtil.data_preprocessing_algo(df_resource, "data_date", None, None, 0, 1, 97)  
 
     evaluator = PearsonKMedoids(df_data)
@@ -291,14 +293,16 @@ def calculate_cluster_curve(order):
         None
     """
     order_id = order.get('order_id')
-    # user_id = order.get('user_id')
     date_start = order.get('date_start')
     date_end = order.get('date_end')
     cluster_num = order.get('cluster_num')
     if cluster_num is None:
         cluster_num = 2
+    user_id = order.get('user_id')
+    df_resource, data_point_flag = read_data_table(user_id, date_start, date_end)
 
-    df_resource, data_point_flag = read_data_table(order_id, date_start, date_end)
+    # df_resource, data_point_flag = read_data_table(order_id, date_start, date_end)
+    
     df_resource, df_data = DataFrameUtil.data_preprocessing_algo(df_resource, "data_date", None, None, 0, 1, 97)  
 
     evaluator = PearsonKMedoids(df_data)

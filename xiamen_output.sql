@@ -5,6 +5,7 @@ USE xiamen_output;
 CREATE TABLE orders (
     order_id INT AUTO_INCREMENT PRIMARY KEY,    -- 命令ID
     func_type INT NOT NULL,                     -- 功能类型: 1 – 聚类指标评估与分析，2 – 聚类与分析，3 - 相关性分析，4 – 负荷基准线计算与选择
+    user_id VARCHAR(50) NOT NULL,               -- 用户ID，与 dr_cons_curve 表中的 cons_id 对应
     date_start DATE NOT NULL,                   -- 数据待分析的起始日期，YYYY-MM-DD
     date_end DATE NOT NULL,                     -- 数据待分析的结束日期，YYYY-MM-DD
     user_type INT,                              -- 用户类型: 1 - 空调，2 - 储能，3 - 光伏，4 - 照明，5 - 充电桩，6 - 生产，7 - 电梯，8 - 其他
@@ -12,37 +13,15 @@ CREATE TABLE orders (
     window_size INT                             -- 预测采用的历史数据长度，超短期预测默认为 1 * 数据日点数，短期预测默认为 30 * 数据日点数
 );
 
--- order_users表: 命令表，存储命令待分析用户的id
-CREATE TABLE order_users (
-    order_id INT,                               -- 命令ID
-    user_id VARCHAR(50) NOT NULL,               -- 用户ID，与 dr_cons_curve 表中的 cons_id 对应
-    PRIMARY KEY (order_id, user_id)
-);
+-- INSERT INTO orders VALUES (1, 1, '3500520081112', '2023-06-16', '2024-10-29', NULL, NULL, NULL);
+-- INSERT INTO orders VALUES (2, 2, '3500520081112', '2023-06-16', '2024-10-29', NULL, 3, NULL);
+-- INSERT INTO orders VALUES (3, 3, '3500520081112', '2023-06-16', '2024-10-29', NULL, 3, NULL);
+-- INSERT INTO orders VALUES (4, 4, '3500520081112', '2023-06-16', '2024-10-29', 5, NULL, NULL);
+-- INSERT INTO orders VALUES (5, 5, '3500520081112', '2024-09-16', '2024-10-29', 5, NULL, 96);
+-- INSERT INTO orders VALUES (6, 6, '3500520081112', '2024-09-16', '2024-10-29', 5, NULL, 96);
+-- INSERT INTO orders VALUES (7, 7, '3500520081112', '2024-09-16', '2024-10-29', 5, NULL, 96);
 
-INSERT INTO orders VALUES (1, 1, '2023-06-16', '2024-10-29', NULL, NULL, NULL);
-INSERT INTO order_users VALUES (1, '3500520081112');
-INSERT INTO order_users VALUES (1, '3500520080770');
-
-INSERT INTO orders VALUES (2, 2, '2023-06-16', '2024-10-29', NULL, 3, NULL);
-INSERT INTO order_users VALUES (2, '3500520081112');
-
-INSERT INTO orders VALUES (3, 3, '2023-06-16', '2024-10-29', NULL, 3, NULL);
-INSERT INTO order_users VALUES (3, '3500520081112');
-INSERT INTO order_users VALUES (3, '3500520080770');
-
-INSERT INTO orders VALUES (4, 4, '2023-06-16', '2024-10-29', 5, NULL, NULL);
-INSERT INTO order_users VALUES (4, '3500520081112');
-
-INSERT INTO orders VALUES (5, 5, '2024-09-16', '2024-10-29', 5, NULL, 96);
-INSERT INTO order_users VALUES (5, '3500520081112');
-
-INSERT INTO orders VALUES (6, 6, '2024-09-16', '2024-10-29', 5, NULL, 96);
-INSERT INTO order_users VALUES (6, '3500520081112');
-
-INSERT INTO orders VALUES (7, 7, '2024-09-16', '2024-10-29', 5, NULL, 96);
-INSERT INTO order_users VALUES (7, '3500520081112');
-
--- 2.2 cluster_evaluation表: 结果表，存储聚类指标评估与分析的结果
+-- cluster_evaluation表: 结果表，存储聚类指标评估与分析的结果
 CREATE TABLE cluster_evaluation (
     order_id INT NOT NULL,                         
     cluster_num INT NOT NULL,                      -- 聚类数
@@ -55,7 +34,7 @@ CREATE TABLE cluster_evaluation (
     PRIMARY KEY (order_id, cluster_num)            -- 联合主键，确保同一订单和聚类数的唯一性
 );
 
--- 2.3 cluster_curve表: 结果表，存储聚类与分析的结果（各簇平均负荷曲线）
+-- cluster_curve表: 结果表，存储聚类与分析的结果（各簇平均负荷曲线）
 CREATE TABLE cluster_curve (
     order_id INT NOT NULL,           
     cluster_id INT NOT NULL,            -- 聚类簇id
@@ -159,7 +138,7 @@ CREATE TABLE cluster_curve (
     PRIMARY KEY (order_id, cluster_id) 
 );
 
--- 2.4 correlation: 结果表，存储相关性分析的结果
+-- correlation: 结果表，存储相关性分析的结果
 CREATE TABLE correlation (
     order_id INT NOT NULL,                         
     factor VARCHAR(50) NOT NULL,                  -- 因素名称
@@ -167,7 +146,7 @@ CREATE TABLE correlation (
     PRIMARY KEY (order_id, factor)                 
 );
 
--- 2.5 baseline表: 结果表，存储基准线计算与选择的结果
+-- baseline表: 结果表，存储基准线计算与选择的结果
 CREATE TABLE baseline (
     order_id INT NOT NULL,           
     type INT NOT NULL,                  -- 基线类型 (1 - mean, 2 - max, 3 - min, 4 - quantile, 5 - typical)
@@ -273,7 +252,7 @@ CREATE TABLE baseline (
     PRIMARY KEY (order_id, type)
 );
 
--- 2.6 forecast表: 结果表，存储超短期负荷预测和短期负荷预测的结果
+-- forecast表: 结果表，存储超短期负荷预测和短期负荷预测的结果
 CREATE TABLE forecast (
     order_id INT NOT NULL PRIMARY KEY,           
     type INT NOT NULL,                  -- 预测类型：1 – 超短期，2 – 短期
@@ -378,7 +357,7 @@ CREATE TABLE forecast (
     accuracy DECIMAL(10, 2)             -- 短期预测准确率
 );
 
--- 2.7 forecast_actuals表: 结果表，存储超短期负荷预测和短期负荷预测所对应的实际负荷
+-- forecast_actuals表: 结果表，存储超短期负荷预测和短期负荷预测所对应的实际负荷
 CREATE TABLE forecast_actuals (
     order_id INT NOT NULL PRIMARY KEY,           
     type INT NOT NULL,                  -- 预测类型：1 – 超短期，2 – 短期
@@ -482,7 +461,7 @@ CREATE TABLE forecast_actuals (
     p96 DECIMAL(10, 2)                  -- 第96个时间点的实际负荷
 );
 
--- 2.8 potential表: 结果表，存储负荷潜力计算与评估的结果
+-- potential表: 结果表，存储负荷潜力计算与评估的结果
 CREATE TABLE potential (
     order_id INT NOT NULL,                         
     baseline_type INT NOT NULL,             -- 基线类型 (1 - mean, 2 - max, 3 - min, 4 - quantile, 5 - typical)

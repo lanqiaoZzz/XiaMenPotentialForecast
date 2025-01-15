@@ -139,11 +139,13 @@ def calculate_baseline(order, write_to_db=True):
         df_result / None
     """
     order_id = order.get('order_id')
-    # user_id = order.get('user_id')
     user_type = order.get('user_type')
     date_end = order.get('date_end')
-    df, data_point_flag = read_data_table(order_id, None, date_end)
-
+    user_id = order.get('user_id')
+    df, data_point_flag = read_data_table(user_id, None, date_end)
+    
+    # df, data_point_flag = read_data_table(order_id, None, date_end)
+    
     df.ffill(axis=0, inplace=True)
 
     date_end = pd.to_datetime(date_end)
