@@ -6,19 +6,20 @@ CREATE TABLE orders (
     order_id INT AUTO_INCREMENT PRIMARY KEY,    -- 命令ID
     func_type INT NOT NULL,                     -- 功能类型: 1 – 聚类指标评估与分析，2 – 聚类与分析，3 - 相关性分析，4 – 负荷基准线计算与选择
     user_id VARCHAR(50) NOT NULL,               -- 用户ID，与 dr_cons_curve 表中的 cons_id 对应
-    date_start DATE NOT NULL,                   -- 数据待分析的起始日期，YYYY-MM-DD
-    date_end DATE NOT NULL,                     -- 数据待分析的结束日期，YYYY-MM-DD
+    date_start DATE,                            -- 数据待分析的起始日期，YYYY-MM-DD
+    date_end DATE,                              -- 数据待分析的结束日期，YYYY-MM-DD
+    time_forecast DATETIME,                     
     user_type INT,                              -- 用户类型: 1 - 空调，2 - 储能，3 - 光伏，4 - 照明，5 - 充电桩，6 - 生产，7 - 电梯，8 - 其他
     cluster_num INT,                            -- 聚类簇数，默认为2
     window_size INT                             -- 预测采用的历史数据长度，超短期预测默认为 1 * 数据日点数，短期预测默认为 30 * 数据日点数
 );
 
 -- INSERT INTO orders VALUES (1, 1, '3500520081112', '2023-06-16', '2024-10-29', NULL, NULL, NULL);
--- INSERT INTO orders VALUES (2, 2, '3500520081112', '2023-06-16', '2024-10-29', NULL, 3, NULL);
+INSERT INTO orders VALUES (2, 2, '3500520081112', '2023-06-16', '2024-10-29', NULL, NULL, 3, NULL);
 -- INSERT INTO orders VALUES (3, 3, '3500520081112', '2023-06-16', '2024-10-29', NULL, 3, NULL);
 -- INSERT INTO orders VALUES (4, 4, '3500520081112', '2023-06-16', '2024-10-29', 5, NULL, NULL);
 -- INSERT INTO orders VALUES (5, 5, '3500520081112', '2024-09-16', '2024-10-29', 5, NULL, 96);
--- INSERT INTO orders VALUES (6, 6, '3500520081112', '2024-09-16', '2024-10-29', 5, NULL, 96);
+INSERT INTO orders VALUES (6, 6, '3500520081112', NULL, NULL '2024-10-29 00:00:00', 5, NULL, 96);
 -- INSERT INTO orders VALUES (7, 7, '3500520081112', '2024-09-16', '2024-10-29', 5, NULL, 96);
 
 -- cluster_evaluation表: 结果表，存储聚类指标评估与分析的结果
@@ -254,9 +255,9 @@ CREATE TABLE baseline (
 
 -- forecast表: 结果表，存储超短期负荷预测和短期负荷预测的结果
 CREATE TABLE forecast (
-    order_id INT NOT NULL PRIMARY KEY,           
+    order_id INT NOT NULL,           
     type INT NOT NULL,                  -- 预测类型：1 – 超短期，2 – 短期
-    date DATE NOT NULL,                 -- 预测日期，YYYY-MM-DD
+    time_start DATETIME NOT NULL,               
     data_point_flag INT,                -- 数据点数标志：1 - 96点，2 - 48点，3 - 24点
     p1 DECIMAL(10, 2),                  -- 第1个时间点的预测结果
     p2 DECIMAL(10, 2),                  
@@ -354,14 +355,15 @@ CREATE TABLE forecast (
     p94 DECIMAL(10, 2),
     p95 DECIMAL(10, 2),
     p96 DECIMAL(10, 2),                 -- 第96个时间点的预测结果
-    accuracy DECIMAL(10, 2)             -- 短期预测准确率
+    accuracy DECIMAL(10, 2),
+    PRIMARY KEY (order_id, time_start)          
 );
 
 -- forecast_actuals表: 结果表，存储超短期负荷预测和短期负荷预测所对应的实际负荷
 CREATE TABLE forecast_actuals (
     order_id INT NOT NULL PRIMARY KEY,           
     type INT NOT NULL,                  -- 预测类型：1 – 超短期，2 – 短期
-    date DATE NOT NULL,                 -- 预测日期，YYYY-MM-DD
+    time_start DATETIME NOT NULL,                 
     data_point_flag INT,                -- 数据点数标志：1 - 96点，2 - 48点，3 - 24点
     p1 DECIMAL(10, 2),                  -- 第1个时间点的实际负荷
     p2 DECIMAL(10, 2),                  
@@ -465,8 +467,15 @@ CREATE TABLE forecast_actuals (
 CREATE TABLE potential (
     order_id INT NOT NULL,                         
     baseline_type INT NOT NULL,             -- 基线类型 (1 - mean, 2 - max, 3 - min, 4 - quantile, 5 - typical)
-    date DATE NOT NULL,                     -- 日期，YYYY-MM-DD
-    sum DECIMAL(10, 2),                     -- 潜力的和
-    score DECIMAL(10, 2),                   -- 潜力评估得分，越接近1表示效果越好
+    time DATETIME NOT NULL,                     
+    potential DECIMAL(10, 2),                     
+    PRIMARY KEY (order_id, baseline_type, time)           
+);
+
+-- potential_evaluation表: 结果表，存储负荷潜力计算与评估的结果
+CREATE TABLE potential_evaluation (
+    order_id INT NOT NULL,                         
+    baseline_type INT NOT NULL,             -- 基线类型 (1 - mean, 2 - max, 3 - min, 4 - quantile, 5 - typical)
+    score DECIMAL(10, 2) NOT NULL,                    
     PRIMARY KEY (order_id, baseline_type)           
 );

@@ -5,56 +5,84 @@ from correlation import calculate_correlation
 from forecast import forecast
 from potential import calculate_and_evaluate_potential
 
+from pydantic import BaseModel
+from datetime import date, datetime
+from fastapi import FastAPI
+from typing import Optional
+from tools import *
 
-def read_orders_table(order_id):
+
+class OrderRequest(BaseModel):
+    func_type: Optional[int] = None
+    user_id: str
+    date_start: Optional[date] = None
+    date_end: Optional[date] = None
+    time_forecast: Optional[datetime] = None
+    cluster_num: Optional[int] = None
+
+  
+app = FastAPI()
+
+@app.post("/cluster/curve")
+async def cluster_curve(order_req: OrderRequest):
     """
-    读 xiamen_output 数据库中存储命令的表
+    聚类负荷曲线展示
+    """
+    # 查询是否执行过相同的 order
+    order_req.func_type = 2
+    if order_req.cluster_num is None:
+        order_req.cluster_num = 2
+    order_id = get_order_id(order_req)
+
+    if order_id is None:
+        # 未执行过：插入 order 并执行
+        order_id = insert_order_table(order_req)
+        if order_id:
+            order = read_orders_table(order_id)
+            calculate_cluster_curve(order)
+        else:
+            return {
+                "success": False,
+                "message": "执行失败",
+                "data": None
+            }
     
-    """
-    config = {
-        'host': 'localhost',          # 数据库主机地址
-        'user': 'root',               # 数据库用户名      
-        'password': 'w20020309',      # 数据库密码
-        'database': 'xiamen_output',  # 数据库名称
-        'port': 3306,                 # 数据库端口，默认3306
-        'charset': 'utf8mb4'          # 指定字符集
-    }
-
-    connection = pymysql.connect(**config)
-
-    with connection.cursor() as cursor:
-        query = f"select * from orders where order_id = {order_id};"
-        
-        cursor.execute(query)
-
-        result = cursor.fetchone()
-        columns = [desc[0] for desc in cursor.description]  # 字段名列表
-
-        order_dict = dict(zip(columns, result))
-
-        return order_dict
+    # 查询数据库
+    table_name = 'cluster_curve'
+    df_result = read_result_table(table_name, order_id)
+    if not df_result.empty:
+        res = build_cluster_curve_res(df_result)
+        return res
+    else:
+        return {
+            "success": False,
+            "message": "执行失败",
+            "data": None
+        }
 
 
-if __name__ == '__main__':
-    order_id = 7
-    order = read_orders_table(order_id)
 
-    func_type = order.get('func_type')
-    if func_type == 1:
-        # 聚类指标评估与分析
-        evaluate_cluster(order)
-    elif func_type == 2:
-        # 聚类与分析
-        calculate_cluster_curve(order)
-    elif func_type == 3:
-        # 相关性分析
-        calculate_correlation(order)
-    elif func_type == 4:
-        # 负荷基准线计算与选择
-        calculate_baseline(order)
-    elif func_type == 5 or func_type == 6:
-        # 负荷预测
-        forecast(order, True)
-    elif func_type == 7:
-        # 负荷潜力计算与评估
-        calculate_and_evaluate_potential(order)
+
+# if __name__ == '__main__':
+#     order_id = 7
+#     order = read_orders_table(order_id)
+
+#     func_type = order.get('func_type')
+#     if func_type == 1:
+#         # 聚类指标评估与分析
+#         evaluate_cluster(order)
+#     elif func_type == 2:
+#         # 聚类与分析
+#         calculate_cluster_curve(order)
+#     elif func_type == 3:
+#         # 相关性分析
+#         calculate_correlation(order)
+#     elif func_type == 4:
+#         # 负荷基准线计算与选择
+#         calculate_baseline(order)
+#     elif func_type == 5 or func_type == 6:
+#         # 负荷预测
+#         forecast(order, True)
+#     elif func_type == 7:
+#         # 负荷潜力计算与评估
+#         calculate_and_evaluate_potential(order)
