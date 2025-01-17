@@ -304,6 +304,7 @@ def forecast(order, write_to_db=False):
     func_type = order.get('func_type')
     date_start = order.get('date_start')
     date_end = order.get('date_end')
+    time_start = order.get('time_start')
 
     user_id = order.get('user_id')
     df, data_point_flag = read_data_table(user_id, date_start, date_end)

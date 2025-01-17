@@ -243,7 +243,7 @@ class PearsonKMedoids:
 
 def evaluate_cluster(order):
     """
-    评估聚类数为 1-10 时聚类的效果
+    评估聚类数为 1-7 时聚类的效果
 
     参数:
         order(dict)
@@ -262,7 +262,7 @@ def evaluate_cluster(order):
     df_resource, df_data = DataFrameUtil.data_preprocessing_algo(df_resource, "data_date", None, None, 0, 1, 97)  
 
     evaluator = PearsonKMedoids(df_data)
-    metrics = evaluator.cluster_metrics(n_clusters=11, metric_label=1)
+    metrics = evaluator.cluster_metrics(n_clusters=8, metric_label=1)
 
     result = []
     for i in range(len(metrics)):

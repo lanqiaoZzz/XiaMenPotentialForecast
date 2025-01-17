@@ -28,6 +28,21 @@ async def cluster_curve(order_req: OrderRequest):
     """
     聚类负荷曲线展示
     """
+    # 检查 user_id 是否存在
+    if check_user_id(order_req.user_id) == False:
+        return {
+            "success": False,
+            "message": "关联用户不存在",
+            "data": None
+        }
+    # 检查时间范围是否合法
+    if (order_req.date_end - order_req.date_start).days + 1 < order_req.cluster_num + 1:
+        return {
+            "success": False,
+            "message": "时间范围太小，无法进行聚类",
+            "data": None
+        }
+
     # 查询是否执行过相同的 order
     order_req.func_type = 2
     if order_req.cluster_num is None:
@@ -50,8 +65,70 @@ async def cluster_curve(order_req: OrderRequest):
     # 查询数据库
     table_name = 'cluster_curve'
     df_result = read_result_table(table_name, order_id)
+    if df_result is None:
+        # 存在 order 但未执行成功：再次执行
+        order = read_orders_table(order_id)
+        evaluate_cluster(order)
+        df_result = read_result_table(table_name, order_id)
+
     if not df_result.empty:
         res = build_cluster_curve_res(df_result)
+        return res
+    else:
+        return {
+            "success": False,
+            "message": "执行失败",
+            "data": None
+        }
+    
+@app.post("/cluster/evaluation")
+async def cluster_evaluation(order_req: OrderRequest):
+    """
+    获得典型聚类指标
+    """
+    # 检查 user_id 是否存在
+    if check_user_id(order_req.user_id) == False:
+        return {
+            "success": False,
+            "message": "关联用户不存在",
+            "data": None
+        }
+    # 检查时间范围是否合法
+    if (order_req.date_end - order_req.date_start).days + 1 < 8:
+        return {
+            "success": False,
+            "message": "时间范围太小，无法进行聚类",
+            "data": None
+        }
+
+    # 查询是否执行过相同的 order
+    order_req.func_type = 1
+    order_id = get_order_id(order_req)
+
+    if order_id is None:
+        # 未执行过：插入 order 并执行
+        order_id = insert_order_table(order_req)
+        if order_id:
+            order = read_orders_table(order_id)
+            evaluate_cluster(order)
+        else:
+            return {
+                "success": False,
+                "message": "执行失败",
+                "data": None
+            }
+    
+    # 查询数据库
+    table_name = 'cluster_evaluation'
+    df_result = read_result_table(table_name, order_id)
+    if df_result is None:
+        # 存在 order 但未执行成功：再次执行
+        order = read_orders_table(order_id)
+        evaluate_cluster(order)
+        df_result = read_result_table(table_name, order_id)
+
+    if not df_result.empty:
+        res = build_cluster_evaluation_res(df_result)
         return res
     else:
         return {

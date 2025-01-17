@@ -42,50 +42,20 @@ def read_data_table(user_id, date_start, date_end):
         
         return df[columns_selected], int(df['data_point_flag'][0])
 
-# def read_data_table(order_id, date_start, date_end):
-#     """
-#     读 xia_men 数据库中存储数据的表 (多用户)
-    
-#     """
-#     connection = pymysql.connect(**config_result)
+def check_user_id(user_id):
+    connection = pymysql.connect(**config_data)
 
-#     users = []
-#     with connection.cursor() as cursor:
-#         query = f"select user_id from order_users where order_id = '{order_id}';"    
-#         cursor.execute(query)
-
-#         results = cursor.fetchall()
-#         for result in results:
-#             users.append(result[0])
-    
-#     connection = pymysql.connect(**config_data)
-#     user_ids = "', '".join(users)
-
-#     with connection.cursor() as cursor:
-#         if date_start is None:
-#             query = f"select * from dr_cons_curve where cons_id in ('{user_ids}') and data_date <= '{date_end}';"
-#         else:
-#             query = f"select * from dr_cons_curve where cons_id in ('{user_ids}') and data_date >= '{date_start}' and data_date <= '{date_end}';"
+    with connection.cursor() as cursor:
+        query = f"select * from dr_cons_curve where cons_id = '{user_id}';"
         
-#         cursor.execute(query)
+        cursor.execute(query)
 
-#         results = cursor.fetchall()
+        results = cursor.fetchall()
 
-#         if not results:
-#             return None, None
-        
-#         columns = [desc[0] for desc in cursor.description]  # 字段名列表
-
-#         df = pd.DataFrame(results, columns=columns)
-
-#         columns_pi = []
-#         for i in range(1, 97):
-#             columns_pi.append('p' + str(i))
-#         df[columns_pi] = df[columns_pi].astype(float)
-
-#         columns_selected = ['data_date'] + columns_pi
-
-#         return df[columns_selected], int(df['data_point_flag'][0])
+        if not results:
+            return False
+        else:
+            return True
 
 def read_orders_table(order_id):
     """
@@ -261,4 +231,24 @@ def build_cluster_curve_res(df_result):
             'data_point_flag': data_point_flag,
             'curves': curves
         }
+    }
+
+def build_cluster_evaluation_res(df_result):
+    df_result = convert_decimal_to_float(df_result)
+    
+    data = []
+    
+    for index, row in df_result.iterrows():
+        if 1 <= index <= 6:
+            data.append({
+                'cluster_num': int(row['cluster_num']),
+                'silhouette': row['silhouette'],
+                'calinski_harabasz': row['calinski_harabasz'],
+                'davies_bouldin': row['davies_bouldin']
+            })
+        
+    return {
+        'success': True,
+        'message': '',
+        'data': data
     }
