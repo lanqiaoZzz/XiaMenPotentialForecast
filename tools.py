@@ -1,9 +1,8 @@
 import pymysql
 import pandas as pd
 from decimal import Decimal
-from config import config_data, config_result
+from config import *
 from decimal import Decimal
-import numpy as np
 
 
 def convert_decimal_to_float(df):
@@ -56,6 +55,31 @@ def check_user_id(user_id):
             return False
         else:
             return True
+
+def read_weather_table(date_end):
+    connection = pymysql.connect(**config_weather)
+
+    with connection.cursor() as cursor:
+        query = f"select * from vp_weather_real where DATEDIFF('{date_end}', data_date) < 10 and weather_type in ('WS', 'RHU', 'T');"
+        
+        cursor.execute(query)
+
+        results = cursor.fetchall()
+
+        if not results:
+            return None
+
+        columns = [desc[0] for desc in cursor.description]  
+        df = pd.DataFrame(results, columns=columns)
+
+        columns_pi = []
+        for i in range(1, 25):
+            columns_pi.append('p' + str(i))
+        df[columns_pi] = df[columns_pi].astype(float)
+
+        columns_selected = ['weather_type'] + columns_pi
+        
+        return df[columns_selected]
 
 def read_orders_table(order_id):
     """
@@ -246,6 +270,30 @@ def build_cluster_evaluation_res(df_result):
                 'calinski_harabasz': row['calinski_harabasz'],
                 'davies_bouldin': row['davies_bouldin']
             })
+        
+    return {
+        'success': True,
+        'message': '',
+        'data': data
+    }
+
+def build_factor_res(df_result):
+    df_result = convert_decimal_to_float(df_result)
+    
+    data = [
+        {
+            'factor': 1, 
+            'values': df_result[df_result['weather_type'] == 'WS'].iloc[:, 1:].values.flatten().tolist()
+        },
+        {
+            'factor': 4, 
+            'values': df_result[df_result['weather_type'] == 'RHU'].iloc[:, 1:].values.flatten().tolist()
+        },
+        {
+            'factor': 6, 
+            'values': df_result[df_result['weather_type'] == 'T'].iloc[:, 1:].values.flatten().tolist()
+        }
+    ]
         
     return {
         'success': True,

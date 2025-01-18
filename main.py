@@ -14,7 +14,7 @@ from tools import *
 
 class OrderRequest(BaseModel):
     func_type: Optional[int] = None
-    user_id: str
+    user_id: Optional[str] = None
     date_start: Optional[date] = None
     date_end: Optional[date] = None
     time_forecast: Optional[datetime] = None
@@ -137,7 +137,31 @@ async def cluster_evaluation(order_req: OrderRequest):
             "data": None
         }
 
+@app.post("/factor")
+async def factor(order_req: OrderRequest):
+    """
+    获得各种因素状态监控结果（温度、湿度、风速）
+    """
+    date_start = order_req.date_start
+    date_end = order_req.date_end
+    # 检查时间范围是否合法
+    if (date_end - date_start).days + 1 < 10:
+        return {
+            "success": False,
+            "message": "时间范围太小，无法进行相关性分析",
+            "data": None
+        }
 
+    df_result = read_weather_table(date_end)
+    if df_result is None:
+        return {
+            "success": False,
+            "message": "执行失败",
+            "data": None
+        }
+    else:
+        res = build_factor_res(df_result)
+        return res
 
 
 # if __name__ == '__main__':

@@ -8,6 +8,16 @@ config_data = {
     'charset': 'utf8mb4'          # 指定字符集
 }
 
+# 存储天气数据的数据库
+config_weather = {
+    'host': 'localhost',          
+    'user': 'root',                
+    'password': 'w20020309',      
+    'database': 'weather',        
+    'port': 3306,                
+    'charset': 'utf8mb4'          
+}
+
 # 存储程序运行结果的数据库
 config_result = {
     'host': 'localhost',          
