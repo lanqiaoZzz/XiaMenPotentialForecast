@@ -56,11 +56,13 @@ def check_user_id(user_id):
         else:
             return True
 
-def read_weather_table(date_end):
+def read_weather_table(date_start, date_end):
     connection = pymysql.connect(**config_weather)
 
     with connection.cursor() as cursor:
-        query = f"select * from vp_weather_real where DATEDIFF('{date_end}', data_date) < 10 and weather_type in ('WS', 'RHU', 'T');"
+        query = f"select * from vp_weather_real where data_date >= '{date_start}' and data_date <= '{date_end}' and weather_type in ('WS', 'RHU', 'T');"
+        if date_start is None:
+            query = f"select * from vp_weather_real where DATEDIFF('{date_end}', data_date) < 10 and weather_type in ('WS', 'RHU', 'T');"
         
         cursor.execute(query)
 
@@ -294,6 +296,22 @@ def build_factor_res(df_result):
             'values': df_result[df_result['weather_type'] == 'T'].iloc[:, 1:].values.flatten().tolist()
         }
     ]
+        
+    return {
+        'success': True,
+        'message': '',
+        'data': data
+    }
+
+def build_correlation_res(df_result):
+    df_result = convert_decimal_to_float(df_result)
+
+    data = []
+    for _, row in df_result.iterrows():
+        data.append({
+            'factor': row['factor'],
+            'contribution': row['contribution']
+        })
         
     return {
         'success': True,

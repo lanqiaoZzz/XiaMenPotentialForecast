@@ -152,7 +152,7 @@ async def factor(order_req: OrderRequest):
             "data": None
         }
 
-    df_result = read_weather_table(date_end)
+    df_result = read_weather_table(None, date_end)
     if df_result is None:
         return {
             "success": False,
@@ -162,6 +162,62 @@ async def factor(order_req: OrderRequest):
     else:
         res = build_factor_res(df_result)
         return res
+
+@app.post("/correlation")
+async def correlation(order_req: OrderRequest):
+    """
+    获得外部因素相关性分析结果（温度、湿度、风速）
+    """
+    # 检查 user_id 是否存在
+    if check_user_id(order_req.user_id) == False:
+        return {
+            "success": False,
+            "message": "关联用户不存在",
+            "data": None
+        }
+    # 检查时间范围是否合法
+    if (order_req.date_end - order_req.date_start).days + 1 < 10:
+        return {
+            "success": False,
+            "message": "时间范围太小，无法进行相关性分析",
+            "data": None
+        }
+
+    # 查询是否执行过相同的 order
+    order_req.func_type = 3
+    order_id = get_order_id(order_req)
+
+    if order_id is None:
+        # 未执行过：插入 order 并执行
+        order_id = insert_order_table(order_req)
+        if order_id:
+            order = read_orders_table(order_id)
+            calculate_correlation(order)
+        else:
+            return {
+                "success": False,
+                "message": "执行失败",
+                "data": None
+            }
+    
+    # 查询数据库
+    table_name = 'correlation'
+    df_result = read_result_table(table_name, order_id)
+    if df_result is None:
+        # 存在 order 但未执行成功：再次执行
+        order = read_orders_table(order_id)
+        calculate_correlation(order)
+        df_result = read_result_table(table_name, order_id)
+
+    if not df_result.empty:
+        res = build_correlation_res(df_result)
+        return res
+    else:
+        return {
+            "success": False,
+            "message": "执行失败",
+            "data": None
+        }
 
 
 # if __name__ == '__main__':
